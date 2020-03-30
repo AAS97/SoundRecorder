@@ -12,7 +12,10 @@ import javax.swing.border.EmptyBorder;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.TargetDataLine;
 import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.Line;
 import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.Mixer;
 
 public class LevelMeter extends JComponent {
     private int meterWidth = 10;
@@ -112,11 +115,28 @@ public class LevelMeter extends JComponent {
 
         @Override
         public void run() {
-            AudioFormat fmt = new AudioFormat(44100f, 16, 1, true, false);
+
+            try {
+                getLines();
+            } catch (LineUnavailableException e1) {
+                // TODO Auto-generated catch block
+                e1.printStackTrace();
+            }
+            AudioFormat fmt = new AudioFormat(44100f, 16, 2, true, true);
             final int bufferByteSize = 2048;
 
             TargetDataLine line;
             try {
+                // FIXME
+                // Added from other code snippet
+                DataLine.Info info = new DataLine.Info(TargetDataLine.class, fmt);
+                System.out.println("Chosen dataline info : "+info);
+
+                // checks if system supports the data line
+                if (!AudioSystem.isLineSupported(info)) {
+                    throw new LineUnavailableException("The system does not support the specified format.");
+                }
+                // end fixme
                 line = AudioSystem.getTargetDataLine(fmt);
                 line.open(fmt, bufferByteSize);
             } catch (LineUnavailableException e) {
@@ -136,8 +156,8 @@ public class LevelMeter extends JComponent {
                 for (int i = 0, s = 0; i < b;) {
                     int sample = 0;
 
-                    sample |= buf[i++] & 0xFF; // (reverse these two lines
-                    sample |= buf[i++] << 8; // if the format is big endian)
+                    sample |= buf[i++] << 8; // if the format is small endian
+                    sample |= buf[i++] & 0xFF; // reverse these two lines
 
                     // normalize to range of +/-1.0f
                     samples[s++] = sample / 32768f;
@@ -164,6 +184,28 @@ public class LevelMeter extends JComponent {
                 lastPeak = peak;
 
                 setMeterOnEDT(rms, peak);
+            }
+        }
+
+        void getLines() throws LineUnavailableException {
+            // code snippet from : https://stackoverflow.com/questions/3705581/java-sound-api-capturing-microphone
+            Mixer.Info[] mixerInfos = AudioSystem.getMixerInfo();
+            for (Mixer.Info info : mixerInfos) {
+                Mixer m = AudioSystem.getMixer(info);
+                Line.Info[] lineInfos = m.getSourceLineInfo();
+                for (Line.Info lineInfo : lineInfos) {
+                    System.out.println(info.getName() + "---" + lineInfo);
+                    Line line = m.getLine(lineInfo);
+                    System.out.println("\t-----" + line);
+                }
+                lineInfos = m.getTargetLineInfo();
+                for (Line.Info lineInfo : lineInfos) {
+                    System.out.println(m + "---" + lineInfo);
+                    Line line = m.getLine(lineInfo);
+                    System.out.println("\t-----" + line);
+
+                }
+
             }
         }
 

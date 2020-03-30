@@ -2,7 +2,7 @@ import javax.sound.sampled.*;
 import java.io.*;
 
 public class JavaSoundRecorder {
-    static final long RECORD_TIME = 60000;
+    static final long RECORD_TIME = 3000;
 
     File wavFile = new File("/Users/aubrydandoque/Hinfact/SoundRecorder/file.wav");
     AudioFileFormat.Type fileType = AudioFileFormat.Type.WAVE;
@@ -23,7 +23,9 @@ public class JavaSoundRecorder {
     void start() {
         try {
             AudioFormat format = getAudioFormat();
+            
             DataLine.Info info = new DataLine.Info(TargetDataLine.class, format);
+            System.out.println("System info :/r/n" + info);
 
             if (!AudioSystem.isLineSupported(info)) {
                 System.out.println("Line Not Supported");
